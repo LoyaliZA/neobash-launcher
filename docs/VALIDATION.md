@@ -1,3 +1,29 @@
+# Verificación de 0.2.1
+
+9 de noviembre de 2026 (UTC). Rama `feature/ui-refinement-0.2.1`, base `71f2fe5`.
+JDK 21, Wrapper 8.11.1, SDK 35/Build Tools 35.0.0.
+
+```bash
+source scripts/android-env.sh
+./gradlew assembleDebug testDebugUnitTest lintDebug
+```
+
+- BUILD SUCCESSFUL; APK `app/build/outputs/apk/debug/app-debug.apk`.
+- Versión 0.2.1 (3), site.neobash.launcher, minSdk 26, targetSdk 35.
+- 16 pruebas, 0 fallos/errores/omitidas: dominio (6), iconos (3), cajón (2),
+  distribución normal/fuente 200 %/ventana baja (3), navegación y límites (2).
+- Lint: `No issues found.`; firma APK v2 válida; `git diff --check` correcto.
+- SHA-256 local: `df8ad1b9fe65123cf6dd2cb31706fc3abee07bdcf426c7e85b5b50dcb654f007`.
+- Pruebas UI con Compose/Robolectric API 28 y gráficos nativos; no dispositivo.
+- El usuario informa validación física de 0.2 en HyperOS. La nueva 0.2.1 requiere
+  validación física adicional según [el procedimiento](ITERATION_0.2.1.md).
+
+Los informes locales permanecen en `app/build/reports/`, fuera de Git. Los APK de
+Actions tienen otra clave debug y pueden tener otro hash; consultar el artefacto
+de la ejecución del PR correspondiente. No se versionan APK ni cachés.
+
+---
+
 # Verificación de 0.2.0
 
 Fecha: 9 de noviembre de 2026 (UTC). Base: `origin/main` `3c44dc4`.

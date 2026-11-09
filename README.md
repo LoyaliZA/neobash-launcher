@@ -77,3 +77,8 @@ concretos de compilación, pruebas y lint se registran en docs/VALIDATION.md.
 Cabecera geométrica, ciclo celeste unificado y navegación Herramientas–Home–Apps.
 Ver [cambios y pruebas de dispositivo](docs/ITERATION_0.2.md) y
 [resultados de validación](docs/VALIDATION.md).
+
+## Iteración 0.2.1
+
+Navegación sin barra inferior, Home adaptable e iconos originales en el cajón.
+Ver [cambios y validación](docs/ITERATION_0.2.1.md).

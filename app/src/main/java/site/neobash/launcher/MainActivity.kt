@@ -25,7 +25,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -36,6 +38,8 @@ import site.neobash.launcher.core.model.SkyMode
 import site.neobash.launcher.feature.apps.AppsScreen
 import site.neobash.launcher.feature.home.*
 import site.neobash.launcher.feature.settings.SettingsScreen
+import site.neobash.launcher.feature.settings.FavoriteLabels
+import site.neobash.launcher.feature.tools.ToolsScreen
 
 class MainActivity : ComponentActivity() {
     private val model: HomeViewModel by viewModels()
@@ -78,22 +82,33 @@ class MainActivity : ComponentActivity() {
             var mode by rememberSaveable { mutableStateOf(SkyMode.AUTO) }
             var contextMenu by rememberSaveable { mutableStateOf(false) }
             var about by rememberSaveable { mutableStateOf(false) }
+            var favoritesMenu by rememberSaveable { mutableStateOf(false) }
+            var pickerSettings by rememberSaveable { mutableStateOf(false) }
+            var pickerReturn by rememberSaveable { mutableIntStateOf(1) }
             fun navigate(index: Int) { scope.launch { pager.animateScrollToPage(index, animationSpec = tween(240)) } }
-            fun home() { settings = false; slot = -1; query = ""; contextMenu = false; about = false; navigate(1) }
+            fun home() { settings = false; slot = -1; query = ""; contextMenu = false; about = false; favoritesMenu = false; navigate(1) }
+            fun pick(index: Int) {
+                pickerSettings = settings; pickerReturn = pager.currentPage
+                slot = index; query = ""; favoritesMenu = false; navigate(2)
+            }
+            fun finishPicker() {
+                slot = -1; query = ""; settings = pickerSettings
+                if (!settings) navigate(pickerReturn)
+            }
             fun apps() { slot = -1; query = ""; navigate(2) }
             LaunchedEffect(pager.currentPage, settings) {
                 focus.clearFocus()
                 keyboard?.hide()
             }
             LaunchedEffect(homeSignal) { if (homeSignal > 0) {
-                settings = false; query = ""; slot = -1; contextMenu = false; about = false; pager.scrollToPage(1)
+                settings = false; query = ""; slot = -1; contextMenu = false; about = false; favoritesMenu = false; pager.scrollToPage(1)
             } }
             SideEffect {
                 val bars = if (state.preferences.light) SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
                     else SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                 enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
             }
-            BackHandler(enabled = !contextMenu && !about) { home() }
+            BackHandler(enabled = !contextMenu && !about && !favoritesMenu) { if (slot >= 0) finishPicker() else home() }
             NeobashTheme(state.preferences.light) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     // Leave system gesture edges outside the pager and all pointer handlers.
@@ -103,56 +118,58 @@ class MainActivity : ComponentActivity() {
                         }
                         if (settings && slot < 0) Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                             SettingsScreen(state.preferences, state.apps, mode, { mode = it }, model::light,
-                                { slot = it; query = ""; navigate(2) }, ::chooseDefaultHome, { home() })
+                                { pick(it) }, ::chooseDefaultHome, { home() })
                         } else {
-                            HorizontalPager(pager, Modifier.weight(1f), userScrollEnabled = slot < 0, key = { it }) { index ->
+                            val panelNames = listOf("Herramientas", "Inicio", "Aplicaciones")
+                            HorizontalPager(pager, Modifier.weight(1f).semantics {
+                                paneTitle = panelNames[pager.currentPage]
+                                if (slot < 0) customActions = panelNames.indices.filter { it != pager.currentPage }.map { target ->
+                                    CustomAccessibilityAction("Ir a ${panelNames[target]}") { navigate(target); true }
+                                }
+                            }, userScrollEnabled = slot < 0, key = { it }) { index ->
                                 when (index) {
-                                    0 -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                        Text("Herramientas", style = MaterialTheme.typography.headlineLarge)
-                                        TextButton(onClick = { settings = true }) { Text("⚙  Ajustes") }
-                                        TextButton(onClick = { settings = true }) { Text("Personalizar favoritos") }
-                                        TextButton(onClick = { model.light(!state.preferences.light) }) { Text("Cambiar tema") }
-                                        TextButton(onClick = { about = true }) { Text("Información del launcher") }
-                                        OutlinedButton(onClick = ::chooseDefaultHome) { Text("Elegir launcher predeterminado") }
-                                    }
+                                    0 -> ToolsScreen({ home() }, { settings = true }, { favoritesMenu = true },
+                                        { model.light(!state.preferences.light) }, { about = true }, ::chooseDefaultHome)
                                     1 -> HomeScreen(state, model.celestial, mode, { apps() }, { contextMenu = true }, { index ->
                                         val app = state.apps.find { it.id == state.preferences.favorites[index] }
-                                        if (app != null) model.open(app) else { slot = index; query = ""; navigate(2) }
+                                        if (app != null) model.open(app) else pick(index)
                                     })
                                     2 -> AppsScreen(state.apps, state.loading, slot >= 0, query, { query = it }, { app ->
-                                        if (slot >= 0) { model.favorite(slot, app.id); slot = -1; settings = true }
+                                        if (slot >= 0) { model.favorite(slot, app.id); finishPicker() }
                                         else model.open(app)
-                                    }, { if (slot >= 0) { slot = -1; settings = true } else home(); query = "" }, {
+                                    }, { if (slot >= 0) finishPicker() else home() }, {
                                         if (slot >= 0) model.favorite(slot, null)
-                                        slot = -1; settings = true
-                                    })
-                                }
-                            }
-                            if (slot < 0) {
-                                // Explicit accessible routes complement swipes, including access to settings.
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                    listOf("Herramientas", "Inicio", "Apps").forEachIndexed { index, label ->
-                                        TextButton(onClick = { navigate(index) }, modifier = Modifier.semantics {
-                                            contentDescription = "$label, panel ${index + 1} de 3"
-                                            selected = pager.currentPage == index
-                                        }) { Text(label, color = if (pager.currentPage == index) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.outline) }
-                                    }
+                                        finishPicker()
+                                    }, model::icon)
                                 }
                             }
                         }
                     }
                     if (contextMenu) ModalBottomSheet(onDismissRequest = { contextMenu = false }) {
-                        Column(Modifier.padding(horizontal = 24.dp).navigationBarsPadding()) {
+                        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).navigationBarsPadding()) {
                             Text("Escritorio", style = MaterialTheme.typography.titleLarge)
+                            TextButton(onClick = { contextMenu = false; navigate(0) }) { Text("Herramientas") }
+                            TextButton(onClick = { contextMenu = false; apps() }) { Text("Aplicaciones") }
                             TextButton(onClick = { contextMenu = false; settings = true }) { Text("⚙  Ajustes") }
-                            TextButton(onClick = { contextMenu = false; settings = true }) { Text("Personalizar favoritos") }
+                            TextButton(onClick = { contextMenu = false; favoritesMenu = true }) { Text("Personalizar favoritos") }
                             TextButton(onClick = { contextMenu = false; model.light(!state.preferences.light) }) { Text("Cambiar tema") }
                             TextButton(onClick = { contextMenu = false; about = true }) { Text("Información del launcher") }
                             Spacer(Modifier.height(16.dp))
                         }
                     }
+                    if (favoritesMenu) ModalBottomSheet(onDismissRequest = { favoritesMenu = false }) {
+                        Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp).navigationBarsPadding()) {
+                            Text("Favoritos", style = MaterialTheme.typography.titleLarge)
+                            FavoriteLabels.forEachIndexed { index, label ->
+                                val app = state.apps.find { it.id == state.preferences.favorites[index] }
+                                TextButton(onClick = { pick(index) }, modifier = Modifier.fillMaxWidth()) {
+                                    Text("$label · ${app?.label ?: "Elegir app"}")
+                                }
+                            }
+                        }
+                    }
                     if (about) AlertDialog(onDismissRequest = { about = false },
-                        title = { Text("Neobash 0.2") },
+                        title = { Text("Neobash 0.2.1") },
                         text = { Text("Launcher nativo · Kotlin y Compose. Clima y astronomía simulados. El arco celeste es una representación estilizada. Gestos HyperOS pendientes de pruebas físicas.") },
                         confirmButton = { TextButton(onClick = { about = false }) { Text("Cerrar") } })
                 }

@@ -3,6 +3,7 @@ package site.neobash.launcher.core.data
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -34,9 +35,21 @@ class AppsRepository(private val context: Context) {
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         @Suppress("DEPRECATION")
         val resolved = context.packageManager.queryIntentActivities(intent, 0)
-        resolved.filter { it.activityInfo.packageName != context.packageName }
-            .map { LaunchableApp(ComponentName(it.activityInfo.packageName, it.activityInfo.name).flattenToString(),
-                it.loadLabel(context.packageManager).toString()) }
+        val revisions = mutableMapOf<String, Long>()
+        resolved.filter { it.activityInfo.packageName != context.packageName &&
+            it.activityInfo.enabled && it.activityInfo.applicationInfo.enabled }
+            .mapNotNull {
+                val packageName = it.activityInfo.packageName
+                try {
+                    val revision = revisions.getOrPut(packageName) {
+                        @Suppress("DEPRECATION")
+                        context.packageManager.getPackageInfo(packageName, 0).lastUpdateTime
+                    }
+                    LaunchableApp(ComponentName(packageName, it.activityInfo.name).flattenToString(),
+                        it.loadLabel(context.packageManager).toString(), revision)
+                } catch (_: PackageManager.NameNotFoundException) { null }
+                  catch (_: SecurityException) { null }
+            }
             .distinctBy { it.id }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
     }
     fun launch(app: LaunchableApp): Boolean { return try {

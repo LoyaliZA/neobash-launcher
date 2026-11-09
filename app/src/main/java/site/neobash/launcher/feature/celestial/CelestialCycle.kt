@@ -13,11 +13,12 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import site.neobash.launcher.core.model.*
 import java.time.LocalTime
 import kotlin.math.*
 
-@Composable fun CelestialCycle(data: CelestialData, time: LocalTime, mode: SkyMode) {
+@Composable fun CelestialCycle(data: CelestialData, time: LocalTime, mode: SkyMode, arcHeight: Dp = Dp.Unspecified) {
     val ink = MaterialTheme.colorScheme.onBackground
     val muted = MaterialTheme.colorScheme.outline
     val displayTime = when (mode) {
@@ -33,7 +34,7 @@ import kotlin.math.*
         (if (moon != null) "Luna sobre el horizonte, iluminación ${(data.illuminatedFraction * 100).roundToInt()} %." else "Luna fuera del arco.")
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text("CICLO CELESTE", style = MaterialTheme.typography.labelMedium, color = muted)
-        Canvas(Modifier.fillMaxWidth().aspectRatio(2f).padding(16.dp).semantics { contentDescription = description }) {
+        Canvas(Modifier.fillMaxWidth().then(if (arcHeight == Dp.Unspecified) Modifier.aspectRatio(2f) else Modifier.height(arcHeight)).padding(16.dp).semantics { contentDescription = description }) {
             // Same radius on both axes: never stretch the semicircle into an ellipse.
             val radius = min(size.width / 2, size.height - 12.dp.toPx()).coerceAtLeast(0f)
             val center = Offset(size.width / 2, size.height - 2.dp.toPx())

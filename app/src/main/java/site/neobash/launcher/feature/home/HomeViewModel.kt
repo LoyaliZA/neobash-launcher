@@ -15,6 +15,8 @@ data class HomeState(val apps: List<LaunchableApp> = emptyList(), val preference
     val now: LocalDateTime = LocalDateTime.now(), val loading: Boolean = true, val error: String? = null)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val appsRepository = AppsRepository(application)
+    private val iconsRepository = AppIconsRepository(application)
+    suspend fun icon(app: LaunchableApp, sizePx: Int) = iconsRepository.load(app, sizePx)
     private val preferencesRepository = PreferencesRepository(application)
     private val apps = MutableStateFlow<List<LaunchableApp>>(emptyList())
     private val loading = MutableStateFlow(true)
