@@ -37,6 +37,12 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`. No se versiona.
 5. Con depuración USB y el PC autorizado: `adb devices`, después
    `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
 
+## Descargar desde GitHub Actions
+
+Sigue la [guía para descargar e instalar el APK desde un teléfono Android](docs/ANDROID_APK_DOWNLOAD.md).
+El workflow compila, ejecuta pruebas y lint, y guarda el APK como artefacto por
+7 días; no crea releases ni fusiona PR.
+
 ## Instalar directamente en Android
 
 Copiar el APK al dispositivo, abrirlo desde Archivos y permitir a esa aplicación
