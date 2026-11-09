@@ -14,6 +14,9 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -27,12 +30,15 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import site.neobash.launcher.core.designsystem.NeobashTheme
 import site.neobash.launcher.core.designsystem.NeobashMotion
+import site.neobash.launcher.core.designsystem.rememberReducedMotion
+import site.neobash.launcher.core.designsystem.LocalReducedMotion
 import site.neobash.launcher.core.data.TransitionMeasurement
 import site.neobash.launcher.core.model.SkyMode
 import site.neobash.launcher.feature.apps.AppsScreen
@@ -73,6 +79,10 @@ class MainActivity : ComponentActivity() {
             val state by model.state.collectAsStateWithLifecycle()
             val pager = rememberPagerState(initialPage = 1, pageCount = { 3 })
             val scope = rememberCoroutineScope()
+            val drawerScroll = rememberLazyListState()
+            val settingsScroll = rememberScrollState()
+            var navigationJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+            var searchRequested by rememberSaveable { mutableStateOf(false) }
             val focus = LocalFocusManager.current
             val keyboard = LocalSoftwareKeyboardController.current
             var settings by rememberSaveable { mutableStateOf(false) }
@@ -84,8 +94,8 @@ class MainActivity : ComponentActivity() {
             var pickerSettings by rememberSaveable { mutableStateOf(false) }
             var pickerReturn by rememberSaveable { mutableIntStateOf(1) }
             val measurement = remember { TransitionMeasurement() }
-            val reducedMotion = state.preferences.reduceMotion || !android.animation.ValueAnimator.areAnimatorsEnabled()
-            fun navigate(index: Int) { scope.launch {
+            val reducedMotion = rememberReducedMotion(state.preferences.reduceMotion)
+            fun navigate(index: Int) { navigationJob?.cancel(); navigationJob = scope.launch {
                 measurement.begin(index)
                 if (reducedMotion) pager.scrollToPage(index)
                 else pager.animateScrollToPage(index, animationSpec = NeobashMotion.panel())
@@ -99,22 +109,22 @@ class MainActivity : ComponentActivity() {
                     measurement.finish(pager.settledPage)
                 }
             }
-            fun home() { settings = false; slot = -1; query = ""; contextMenu = false; about = false; navigate(1) }
+            fun home() { searchRequested = false; settings = false; slot = -1; query = ""; contextMenu = false; about = false; navigate(1) }
             fun pick(index: Int) {
-                pickerSettings = settings; pickerReturn = pager.currentPage
+                searchRequested = false; pickerSettings = settings; pickerReturn = pager.currentPage
                 slot = index; query = ""; navigate(2)
             }
             fun finishPicker() {
                 slot = -1; query = ""; settings = pickerSettings
                 if (!settings) navigate(pickerReturn)
             }
-            fun apps() { slot = -1; query = ""; navigate(2) }
+            fun apps() { slot = -1; query = ""; searchRequested = true; navigate(2) }
             LaunchedEffect(pager.currentPage, settings) {
                 focus.clearFocus()
                 keyboard?.hide()
             }
             LaunchedEffect(homeSignal) { if (homeSignal > 0) {
-                settings = false; query = ""; slot = -1; contextMenu = false; about = false; pager.scrollToPage(1)
+                searchRequested = false; navigationJob?.cancel(); settings = false; query = ""; slot = -1; contextMenu = false; about = false; pager.scrollToPage(1)
             } }
             SideEffect {
                 val bars = if (state.preferences.light) SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
@@ -122,57 +132,65 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
             }
             BackHandler(enabled = !contextMenu && !about) { if (slot >= 0) finishPicker() else home() }
-            NeobashTheme(state.preferences.light) {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    // Leave system gesture edges outside the pager and all pointer handlers.
-                    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.union(WindowInsets.systemGestures)).imePadding()) {
-                        state.error?.let { message ->
-                            TextButton(onClick = model::dismissError) { Text("$message · Cerrar") }
-                        }
-                        if (settings && slot < 0) Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                            SettingsScreen(state.preferences, state.apps, mode, { mode = it }, model::light,
-                                { pick(it) }, ::chooseDefaultHome, { home() }, model::component, model::count,
-                                model::move, model::resetLayout, model::reduceMotion)
-                        } else {
-                            val panelNames = listOf("Herramientas", "Inicio", "Aplicaciones")
-                            HorizontalPager(pager, Modifier.weight(1f).semantics {
-                                paneTitle = panelNames[pager.currentPage]
-                                customActions = if (slot >= 0) emptyList() else
-                                    listOf(CustomAccessibilityAction("Abrir ajustes") { settings = true; true }) +
-                                        panelNames.indices.filter { it != pager.currentPage }.map { target ->
-                                            CustomAccessibilityAction("Ir a ${panelNames[target]}") { navigate(target); true }
+            CompositionLocalProvider(LocalReducedMotion provides reducedMotion) {
+                NeobashTheme(state.preferences.light) {
+                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                        // Leave system gesture edges outside the pager and all pointer handlers.
+                        Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.union(WindowInsets.systemGestures)).imePadding()) {
+                            state.error?.let { message ->
+                                TextButton(onClick = model::dismissError) { Text("$message · Cerrar") }
+                            }
+                            Box(Modifier.weight(1f)) {
+                                val panelNames = listOf("Productividad", "Inicio", "Aplicaciones")
+                                HorizontalPager(pager, Modifier.fillMaxSize().semantics {
+                                    paneTitle = panelNames[pager.currentPage]
+                                    customActions = if (slot >= 0) emptyList() else
+                                        listOf(CustomAccessibilityAction("Abrir ajustes") { settings = true; true }) +
+                                            panelNames.indices.filter { it != pager.currentPage }.map { target ->
+                                                CustomAccessibilityAction("Ir a ${panelNames[target]}") { navigate(target); true }
+                                            }
+                                }.then(if (settings && slot < 0) Modifier.clearAndSetSemantics { } else Modifier), userScrollEnabled = slot < 0 && !settings, beyondViewportPageCount = 1,
+                                    flingBehavior = PagerDefaults.flingBehavior(pager, snapAnimationSpec = if (reducedMotion) androidx.compose.animation.core.snap() else NeobashMotion.panel()), key = { it }) { index ->
+                                    Box(Modifier.fillMaxSize().then(if (index != pager.currentPage) Modifier.clearAndSetSemantics { } else Modifier)) {
+                                        when (index) {
+                                            0 -> ToolsScreen({ home() }, { settings = true })
+                                            1 -> HomeScreen(state, model.celestial, mode, { apps() }, { contextMenu = true }, { index ->
+                                                val app = state.apps.find { it.id == state.preferences.favorites[index] }
+                                                if (app != null) model.open(app) else pick(index)
+                                            })
+                                            2 -> AppsScreen(state.apps, state.loading, slot >= 0, query, { query = it }, { app ->
+                                                if (slot >= 0) { model.favorite(slot, app.id); finishPicker() }
+                                                else model.open(app)
+                                            }, { if (slot >= 0) finishPicker() else home() }, {
+                                                if (slot >= 0) model.favorite(slot, null)
+                                                finishPicker()
+                                            }, model::icon, drawerScroll, searchRequested && pager.settledPage == 2 && !pager.isScrollInProgress && !settings, { searchRequested = false })
                                         }
-                            }, userScrollEnabled = slot < 0, key = { it }) { index ->
-                                when (index) {
-                                    0 -> ToolsScreen({ home() }, { settings = true })
-                                    1 -> HomeScreen(state, model.celestial, mode, { apps() }, { contextMenu = true }, { index ->
-                                        val app = state.apps.find { it.id == state.preferences.favorites[index] }
-                                        if (app != null) model.open(app) else pick(index)
-                                    })
-                                    2 -> AppsScreen(state.apps, state.loading, slot >= 0, query, { query = it }, { app ->
-                                        if (slot >= 0) { model.favorite(slot, app.id); finishPicker() }
-                                        else model.open(app)
-                                    }, { if (slot >= 0) finishPicker() else home() }, {
-                                        if (slot >= 0) model.favorite(slot, null)
-                                        finishPicker()
-                                    }, model::icon)
+                                    }
+                                }
+                                androidx.compose.animation.AnimatedVisibility(visible = settings && slot < 0, enter = NeobashMotion.enter(reducedMotion), exit = NeobashMotion.exit(reducedMotion)) {
+                                    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(settingsScroll)) {
+                                        SettingsScreen(state.preferences, state.apps, mode, { mode = it }, model::light,
+                                            { pick(it) }, ::chooseDefaultHome, { home() }, model::component, model::count,
+                                            model::move, model::resetLayout, model::reduceMotion, model::block)
+                                    }
                                 }
                             }
                         }
-                    }
-                    if (contextMenu) ModalBottomSheet(onDismissRequest = { contextMenu = false }) {
-                        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).navigationBarsPadding()) {
-                            Text("Escritorio", style = MaterialTheme.typography.titleLarge)
-                            TextButton(onClick = { contextMenu = false; settings = true }) { Text("Personalizar inicio") }
-                            TextButton(onClick = { contextMenu = false; settings = true }) { Text("Ajustes") }
-                            TextButton(onClick = { contextMenu = false; about = true }) { Text("Información") }
-                            Spacer(Modifier.height(16.dp))
+                        if (contextMenu) ModalBottomSheet(onDismissRequest = { contextMenu = false }) {
+                            Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).navigationBarsPadding()) {
+                                Text("Escritorio", style = MaterialTheme.typography.titleLarge)
+                                TextButton(onClick = { contextMenu = false; settings = true }) { Text("Personalizar inicio") }
+                                TextButton(onClick = { contextMenu = false; settings = true }) { Text("Ajustes") }
+                                TextButton(onClick = { contextMenu = false; about = true }) { Text("Información") }
+                                Spacer(Modifier.height(16.dp))
+                            }
                         }
+                        if (about) AlertDialog(onDismissRequest = { about = false },
+                            title = { Text("Neobash 0.3.0") },
+                            text = { Text("Launcher nativo · Kotlin y Compose. Clima y astronomía simulados. El arco celeste es una representación estilizada. Gestos HyperOS pendientes de pruebas físicas.") },
+                            confirmButton = { TextButton(onClick = { about = false }) { Text("Cerrar") } })
                     }
-                    if (about) AlertDialog(onDismissRequest = { about = false },
-                        title = { Text("Neobash 0.2.2") },
-                        text = { Text("Launcher nativo · Kotlin y Compose. Clima y astronomía simulados. El arco celeste es una representación estilizada. Gestos HyperOS pendientes de pruebas físicas.") },
-                        confirmButton = { TextButton(onClick = { about = false }) { Text("Cerrar") } })
                 }
             }
         }

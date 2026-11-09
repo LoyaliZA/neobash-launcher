@@ -29,12 +29,23 @@ class PanelNavigationTest {
         compose.onNodeWithText("Herramientas").assertIsDisplayed()
     }
 
+    @Test fun reversingAnUnfinishedDragReturnsHome() {
+        compose.onRoot().performTouchInput {
+            down(center)
+            moveTo(center.copy(x = center.x - 80f), 250)
+            moveTo(center.copy(x = center.x + 8f), 250)
+            up()
+        }
+        compose.onNodeWithContentDescription("Zona vacía del escritorio").assertIsDisplayed()
+        compose.onNodeWithText("Aplicaciones").assertDoesNotExist()
+    }
+
     @Test fun longPressOpensSingleSettingsDestinationAndBackReturnsHome() {
         compose.onNodeWithContentDescription("Zona vacía del escritorio").performTouchInput { longClick() }
         compose.onNodeWithText("Personalizar inicio").assertIsDisplayed()
         compose.onNodeWithText("Ajustes").performClick()
-        compose.onNodeWithText("Configuración").assertIsDisplayed()
-        compose.onNodeWithText("← Inicio").performClick()
+        compose.onNodeWithText("Configuración").assertExists()
+        compose.onNodeWithText("← Inicio").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Zona vacía del escritorio").assertIsDisplayed()
     }
     @Test fun favoritePickerReturnsToSettingsAndHomeButtonReturnsHome() {
@@ -43,8 +54,8 @@ class PanelNavigationTest {
         compose.onNodeWithText("GELIA · Configurar").performScrollTo().performClick()
         compose.onNodeWithText("Elegir favorito").assertIsDisplayed()
         compose.onNodeWithText("Quitar este favorito").performClick()
-        compose.onNodeWithText("Configuración").assertIsDisplayed()
-        compose.onNodeWithText("← Inicio").performClick()
+        compose.onNodeWithText("Configuración").assertExists()
+        compose.onNodeWithText("← Inicio").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Zona vacía del escritorio").assertIsDisplayed()
         compose.onNodeWithText("Configuración").assertDoesNotExist()
     }
