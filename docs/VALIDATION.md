@@ -139,3 +139,51 @@ restricciones del fabricante necesitan dispositivo real.
 No hay resultados de rendimiento A/B. El protocolo y el script se documentan en
 [ITERATION_0.2.2.md](ITERATION_0.2.2.md), con separación de carga, frames y reposo del
 pager. No se atribuye una mejora cuantitativa al cambio sin esa comparación.
+
+## Iteración 0.3.0 · 2026-11-09
+
+Base actualizada `af3ff17` (main, PR #6 / 0.2.2 integrado); rama
+`feature/fluid-motion-0.3`. Entorno Android existente, sin actualizar dependencias
+del launcher. Se usó Gradle 8.11.1 instalado tras activar android-env.sh;
+el Wrapper intentó descargar la misma distribución y no pudo abrir el socket
+bajo aislamiento. Las ejecuciones finales usaron el entorno con acceso al proxy.
+
+```bash
+source scripts/android-env.sh
+gradle assembleDebug testDebugUnitTest lintDebug
+gradle -PenableMacrobenchmark :app:assembleBenchmark :macrobenchmark:assembleBenchmark
+```
+
+Resultados finales:
+
+- assembleDebug: correcto. `site.neobash.launcher`, 0.3.0 / versionCode 5,
+  minSdk 26, target/compileSdk 35.
+- testDebugUnitTest: **31 pruebas**, cero fallos, errores u omisiones.
+- lintDebug: **cero errores y advertencias**, informe XML sin incidencias.
+- Variante benchmark del objetivo y APK de instrumentación: ambos compilados.
+  Confirmada la tarea connectedBenchmarkAndroidTest; no ejecutada sin dispositivo.
+- apksigner verify --verbose: firma APK v2 válida, un firmante debug.
+- aapt dump badging: versión y niveles SDK anteriores confirmados.
+- git diff --check y bash -n scripts/measure-drawer.sh: correctos.
+- adb devices: lista vacía. Sin pruebas físicas ni emulador en esta iteración.
+
+Se conservan las 24 pruebas anteriores y se añaden siete: inversión de arrastre,
+interrupción/reversión de tamaño celeste y snap con movimiento reducido, callback
+de pulsación inmediato, conservación del scroll del cajón, contrato de bloques,
+codec/alias/posición y recuperación ante payload inválido/futuro. La prueba de
+DataStore existente verifica además tamaño/opciones de bloque y restauración.
+La prueba del selector vuelve al mismo scroll de Ajustes y desplaza al botón de
+regreso para usarlo. Los paneles retenidos e inactivos quedan fuera de la semántica;
+se corrigió la duplicación detectada por las pruebas iniciales. El reloj Compose
+se avanza por frames separados para probar una transición realmente intermedia.
+
+APK local fuera de Git: `app/build/outputs/apk/debug/app-debug.apk`.
+SHA-256: `12537a9d1c6cdc6c76c96721213ef72e1f776367fa63bf4ef2d687d81adbae6c`.
+Informes: app/build/reports/tests/testDebugUnitTest e informe lint-results-debug.
+
+No hay mediciones físicas de FPS, p50/p95, memoria o mejora A/B. El análisis de IO,
+caché y composición es estático; las pruebas JVM no validan GPU/IME/Quickstep ni
+el diálogo RoleManager API 29+. HyperOS 3, Android estándar, tablets, densidades,
+refresco variable, TalkBack, escalas y persistencia tras matar/reinstalar el proceso
+requieren el protocolo físico de [FLUID_MOTION](FLUID_MOTION.md).
+El workflow de PR conserva build/test/lint y APK debug descargable durante 7 días.
