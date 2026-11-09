@@ -71,3 +71,9 @@ concretos de compilación, pruebas y lint se registran en docs/VALIDATION.md.
 - [Diseño](docs/DESIGN_SYSTEM.md)
 - [Compatibilidad](docs/DEVICE_COMPATIBILITY.md)
 - [Roadmap](docs/ROADMAP.md)
+
+## Iteración 0.2
+
+Cabecera geométrica, ciclo celeste unificado y navegación Herramientas–Home–Apps.
+Ver [cambios y pruebas de dispositivo](docs/ITERATION_0.2.md) y
+[resultados de validación](docs/VALIDATION.md).

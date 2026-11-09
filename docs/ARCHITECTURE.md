@@ -19,12 +19,13 @@ tras reinstalar; se muestran como no disponibles y permiten reasignación.
 No se persisten iconos ni se cargan imágenes de paquetes: se usan marcas lineales
 provisionales de slot. La lista muestra nombre y paquete para desambiguar.
 
-`core/model/CelestialProvider` permite sustituir el proveedor simulado por cálculos
-locales. Horarios fijos 06:30–18:45, fase 0.35, clima fijo 24°C/UV 3; no son
-observaciones reales. Canvas representa progreso solar y disco lunar mediante
-limbo y terminador elíptico. Día/noche se decide por hora local o vista manual.
-La orientación lunar aparente por ubicación/hemisferio queda pendiente; creciente
-se ilumina a la derecha. La preferencia de vista astronómica es temporal.
+`core/model/Celestial.kt` separa proveedor, efemérides independientes de Sol/Luna,
+progreso por tránsito y geometría de semicírculo. `CelestialCycle` representa ambos
+sobre un único arco circular estilizado. La procedencia sigue explícitamente
+simulada. Ver contratos, convenciones y limitaciones en [Iteración 0.2](ITERATION_0.2.md).
+La navegación principal es un HorizontalPager Herramientas–Home–Apps, con botones
+accesibles alternativos. Ajustes y selección de favorito conservan sus rutas.
+El menú contextual es un ModalBottomSheet desde una zona vacía del escritorio.
 
 `core/designsystem` define ambos esquemas. `feature/apps`, `feature/settings` y
 `feature/celestial` aíslan UI. Inyección manual en ViewModel; sin framework DI.

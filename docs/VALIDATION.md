@@ -1,3 +1,41 @@
+# Verificación de 0.2.0
+
+Fecha: 9 de noviembre de 2026 (UTC). Base: `origin/main` `3c44dc4`.
+Rama: `feature/celestial-ui-0.2`. JDK 21, Gradle Wrapper 8.11.1, SDK 35,
+Build Tools 35.0.0; entorno activado con `scripts/android-env.sh`.
+
+```bash
+source scripts/android-env.sh
+./gradlew assembleDebug testDebugUnitTest lintDebug
+```
+
+Resultado final: BUILD SUCCESSFUL (12 s). La ejecución offline inicial carecía de
+algunas dependencias; la ejecución con red descargó las versiones ya fijadas.
+
+- APK debug 0.2.0 (versionCode 2), applicationId `site.neobash.launcher`,
+  minSdk 26, targetSdk 35; 10200855 bytes.
+- 6 pruebas JVM, 0 fallos, 0 errores, 0 omitidas: búsqueda normalizada,
+  límites solares, fases lunares, tránsitos nocturnos/eventos ausentes,
+  simultaneidad e independencia de cuerpos y simetría/radio del semicírculo.
+- Lint: `No issues found.` (0 errores, 0 advertencias).
+- `apksigner verify --verbose`: firma v2 válida, un firmante debug.
+- `aapt dump badging`: paquete y versión correctos; filtros HOME/DEFAULT/LAUNCHER
+  conservados en el manifest fusionado. Sin permisos sensibles nuevos.
+- `git diff --check`: sin errores.
+
+APK: `app/build/outputs/apk/debug/app-debug.apk` (no versionado).
+SHA-256: `2186254166e43fb40b0562188fcea3c92afd81fe0828382551b4ceea14047c75`.
+Informes: `app/build/reports/tests/testDebugUnitTest/index.html` y
+`app/build/reports/lint-results-debug.html`.
+
+No hay emulador/imagen instalado ni `/dev/kvm`. No se ejecutaron pruebas
+instrumentadas o físicas. Interacción, gestos, accesibilidad, rendimiento, HOME
+y persistencia end-to-end siguen pendientes de dispositivo. La compatibilidad
+con gestos de HyperOS no se afirma. Procedimiento de prueba y límites del modelo
+en [Iteración 0.2](ITERATION_0.2.md).
+
+---
+
 # Verificación de 0.1.0
 
 Fecha: 8 de noviembre de 2026 (America/Mexico_City).

@@ -9,55 +9,71 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import site.neobash.launcher.core.model.CelestialData
+import site.neobash.launcher.core.model.*
 import java.time.LocalTime
 import kotlin.math.*
 
-@Composable fun CelestialCycle(data: CelestialData, time: LocalTime, day: Boolean) {
+@Composable fun CelestialCycle(data: CelestialData, time: LocalTime, mode: SkyMode) {
     val ink = MaterialTheme.colorScheme.onBackground
     val muted = MaterialTheme.colorScheme.outline
-    Column(Modifier.fillMaxWidth().padding(vertical = 24.dp)) {
-        Text(if (day) "TRAYECTORIA SOLAR" else "FASE LUNAR", style = MaterialTheme.typography.labelMedium, color = muted)
-        Canvas(Modifier.fillMaxWidth().height(160.dp).padding(top = 20.dp)) {
-            if (day) {
-                val left = size.width * .08f
-                val width = size.width * .84f
-                val height = size.height * .8f
-                drawArc(muted, 180f, 180f, false, Offset(left, size.height - height), Size(width, height * 2), style = Stroke(1.dp.toPx()))
-                drawLine(muted.copy(alpha = .4f), Offset(left, size.height), Offset(left + width, size.height))
-                val angle = PI * (1 - data.solarProgress(time))
-                val point = Offset(left + width / 2 + width / 2 * cos(angle).toFloat(), size.height - height * sin(angle).toFloat())
-                drawCircle(ink.copy(alpha = .08f), 14.dp.toPx(), point)
-                drawCircle(ink, 5.dp.toPx(), point)
-            } else {
-                val r = min(size.width, size.height) * .38f
-                val center = Offset(size.width / 2, size.height / 2)
-                drawCircle(muted.copy(alpha = .2f), r, center)
-                // Visible disk: limb plus elliptical terminator, waxing lit on right.
-                val phase = data.phase.mod(1.0)
+    val displayTime = when (mode) {
+        SkyMode.AUTO -> time
+        SkyMode.DAY -> LocalTime.of(14, 0)
+        SkyMode.NIGHT -> LocalTime.of(21, 0)
+    }
+    val sun = data.sun.transitProgress(displayTime)
+    val moon = data.moon.transitProgress(displayTime)
+    val provenance = if (data.source == CelestialSource.SIMULATED) "Astronomía simulada · sin ubicación" else "Astronomía verificada"
+    val description = "$provenance. " +
+        (if (sun != null) "Sol sobre el horizonte. " else "Sol fuera del arco. ") +
+        (if (moon != null) "Luna sobre el horizonte, iluminación ${(data.illuminatedFraction * 100).roundToInt()} %." else "Luna fuera del arco.")
+    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Text("CICLO CELESTE", style = MaterialTheme.typography.labelMedium, color = muted)
+        Canvas(Modifier.fillMaxWidth().aspectRatio(2f).padding(16.dp).semantics { contentDescription = description }) {
+            // Same radius on both axes: never stretch the semicircle into an ellipse.
+            val radius = min(size.width / 2, size.height - 12.dp.toPx()).coerceAtLeast(0f)
+            val center = Offset(size.width / 2, size.height - 2.dp.toPx())
+            drawArc(muted.copy(alpha = .5f), 180f, 180f, false,
+                Offset(center.x - radius, center.y - radius), Size(radius * 2, radius * 2), style = Stroke(1.dp.toPx()))
+            drawLine(muted.copy(alpha = .2f), Offset(center.x - radius, center.y), Offset(center.x + radius, center.y))
+            fun point(progress: Float): Offset = semicirclePoint(progress).let { center + Offset(it.x * radius, it.y * radius) }
+            sun?.let {
+                val p = point(it)
+                drawCircle(ink.copy(alpha = .06f), 12.dp.toPx(), p)
+                drawCircle(ink.copy(alpha = .12f), 8.dp.toPx(), p)
+                drawCircle(ink, 3.dp.toPx(), p)
+            }
+            moon?.let {
+                val p = point(it)
+                val r = 10.dp.toPx()
+                drawCircle(muted.copy(alpha = .25f), r, p)
                 val fraction = data.illuminatedFraction.toFloat()
-                val side = if (phase <= .5) 1f else -1f
-                val path = Path()
-                for (i in 0..100) {
-                    val y = -r + 2 * r * i / 100
-                    val x = sqrt((r*r - y*y).coerceAtLeast(0f))
-                    if (i == 0) path.moveTo(center.x + side*x, center.y+y) else path.lineTo(center.x+side*x, center.y+y)
+                val side = if (data.phase.mod(1.0) <= .5) 1f else -1f
+                rotate(data.lunarOrientationDegrees ?: 0f, p) {
+                    val path = Path()
+                    for (i in 0..64) {
+                        val y = -r + 2 * r * i / 64
+                        val x = sqrt((r*r - y*y).coerceAtLeast(0f)) * side
+                        if (i == 0) path.moveTo(p.x+x, p.y+y) else path.lineTo(p.x+x, p.y+y)
+                    }
+                    for (i in 64 downTo 0) {
+                        val y = -r + 2*r*i/64
+                        val x = sqrt((r*r-y*y).coerceAtLeast(0f)) * (1-2*fraction) * side
+                        path.lineTo(p.x+x, p.y+y)
+                    }
+                    path.close()
+                    drawPath(path, ink)
                 }
-                for (i in 100 downTo 0) {
-                    val y = -r + 2*r*i/100
-                    val x = sqrt((r*r-y*y).coerceAtLeast(0f)) * (1-2*fraction) * side
-                    path.lineTo(center.x+x, center.y+y)
-                }
-                path.close()
-                drawPath(path, ink)
+                drawCircle(muted.copy(alpha = .5f), r, p, style = Stroke(.5.dp.toPx()))
             }
         }
-        Spacer(Modifier.height(12.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(if (day) "↑ ${data.sunrise}" else "Iluminación ${(data.illuminatedFraction * 100).roundToInt()} %", style = MaterialTheme.typography.bodySmall)
-            Text(if (day) "${data.sunset} ↓" else "Creciente · simulada", style = MaterialTheme.typography.bodySmall)
-        }
-        Text("Astronomía simulada · sin ubicación", style = MaterialTheme.typography.labelSmall, color = muted)
+        Text("Sol ↑ ${data.sun.rise ?: "—"} · ↓ ${data.sun.set ?: "—"}", style = MaterialTheme.typography.bodySmall)
+        Text("Luna ↑ ${data.moon.rise ?: "—"} · ↓ ${data.moon.set ?: "—"} · ${(data.illuminatedFraction * 100).roundToInt()} %", style = MaterialTheme.typography.bodySmall)
+        Text(provenance, style = MaterialTheme.typography.labelSmall, color = muted)
+        if (mode != SkyMode.AUTO) Text("Vista de demostración · ${displayTime}", style = MaterialTheme.typography.labelSmall, color = muted)
     }
 }
