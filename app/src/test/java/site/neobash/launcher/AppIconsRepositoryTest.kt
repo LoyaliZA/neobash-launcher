@@ -37,6 +37,13 @@ class AppIconsRepositoryTest {
         assertEquals(120, resized!!.width)
     }
 
+    @Test fun packageInvalidationDiscardsCachedRaster() = runBlocking {
+        val repository = AppIconsRepository(context)
+        val first = repository.load(app(), 80).bitmap
+        repository.invalidate(context.packageName)
+        assertNotSame(first, repository.load(app(), 80).bitmap)
+    }
+
     @Test fun removedOrInvalidActivityReturnsUnavailableWithoutThrowing() = runBlocking {
         val repository = AppIconsRepository(context)
         assertFalse(repository.load(LaunchableApp("missing.package/.Missing", "Eliminada"), 80).available)
