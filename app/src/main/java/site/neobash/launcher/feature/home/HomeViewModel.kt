@@ -84,6 +84,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun savePreference(block: suspend () -> Unit) { viewModelScope.launch {
         try { block() } catch (_: IOException) { error.value = "No se pudo guardar la distribución." }
     } }
+    fun block(id: String, preferences: BlockPreferences) = savePreference { preferencesRepository.setBlock(id, preferences) }
     fun component(component: HomeComponent, visible: Boolean) = savePreference { preferencesRepository.setComponent(component, visible) }
     fun count(count: Int) = savePreference { preferencesRepository.setCount(count) }
     fun move(from: Int, to: Int) = savePreference { preferencesRepository.move(from, to) }

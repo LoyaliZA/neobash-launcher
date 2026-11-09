@@ -26,3 +26,11 @@ de animación desactivada. Se conservan ripples Material acotados; sin brillo de
 entrada ni bucles decorativos. Evitar animación de tamaño o de todas las filas
 del cajón. HOME ofrece opciones por pulsación larga; Herramientas y las acciones
 semánticas enlazan al único destino Ajustes. Ver ITERATION_0.2.2.md.
+
+## Movimiento 0.3
+
+Monochrome Fluid conserva su paleta. Los resortes amortiguados, presión .97,
+transiciones breves de superficies y tamaños celestes reversibles se centralizan
+en core/designsystem/Motion.kt. El estado reducido combina preferencia local
+y desactivación del sistema; Compose respeta además su escala de duración.
+Ver [especificación y límites](FLUID_MOTION.md).
