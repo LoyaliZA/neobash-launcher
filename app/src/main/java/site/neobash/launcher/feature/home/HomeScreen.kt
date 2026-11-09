@@ -1,7 +1,5 @@
 package site.neobash.launcher.feature.home
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -42,26 +40,24 @@ import java.util.Locale
         Column(Modifier.fillMaxSize().verticalScroll(scroll, enabled = scroll.maxValue > 0)
             .padding(horizontal = padding, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(gap)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                FacetedN()
-                IconButton(onClick = onContextMenu) {
-                    Text("⚙", modifier = Modifier.semantics { contentDescription = "Opciones del escritorio y navegación" }, fontSize = 22.sp)
-                }
-            }
+            FacetedN()
             if (wide) Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-                Column(Modifier.weight(1f)) { ClockHeader(state, compact) }
-                Column(Modifier.weight(1f)) { CelestialCycle(celestial, state.now.toLocalTime(), mode,
-                    arcHeight = (windowHeight * .2f).coerceIn(88.dp, 156.dp)) }
+                if (HomeComponent.CLOCK !in state.preferences.hiddenComponents) Column(Modifier.weight(1f)) {
+                    ClockHeader(state, compact)
+                }
+                if (HomeComponent.CELESTIAL !in state.preferences.hiddenComponents) Column(Modifier.weight(1f)) {
+                    CelestialCycle(celestial, state.now.toLocalTime(), mode,
+                        arcHeight = (windowHeight * .2f).coerceIn(88.dp, 156.dp))
+                }
             } else {
-                ClockHeader(state, compact)
-                CelestialCycle(celestial, state.now.toLocalTime(), mode,
+                if (HomeComponent.CLOCK !in state.preferences.hiddenComponents) ClockHeader(state, compact)
+                if (HomeComponent.CELESTIAL !in state.preferences.hiddenComponents) CelestialCycle(celestial, state.now.toLocalTime(), mode,
                     arcHeight = (windowHeight * .17f).coerceIn(88.dp, 156.dp))
             }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (HomeComponent.FAVORITES !in state.preferences.hiddenComponents) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("TU ESPACIO", color = MaterialTheme.colorScheme.outline, style = MaterialTheme.typography.labelMedium)
                 val columns = if (windowWidth - padding * 2 < 320.dp || fontScale > 1.3f) 2 else 4
-                FavoriteLabels.indices.chunked(columns).forEach { indices ->
+                (0 until state.preferences.favoriteCount).toList().chunked(columns).forEach { indices ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         indices.forEach { index ->
                             val id = state.preferences.favorites[index]
@@ -141,18 +137,13 @@ import java.util.Locale
 }
 @Composable private fun FacetedN() {
     val ink = MaterialTheme.colorScheme.onSurface
-    val shimmer = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        shimmer.animateTo(1f, tween(220))
-        shimmer.animateTo(0f, tween(320))
-    }
     Canvas(Modifier.size(24.dp).semantics { contentDescription = "Logotipo de Neobash" }) {
         val s = size.width
         fun triangle(ax: Float, ay: Float, bx: Float, by: Float, cx: Float, cy: Float, alpha: Float) {
             drawPath(Path().apply { moveTo(ax*s,ay*s); lineTo(bx*s,by*s); lineTo(cx*s,cy*s); close() }, ink.copy(alpha=alpha))
         }
         triangle(0f,1f,0f,0f,.4f,1f,1f)
-        triangle(0f,0f,1f,1f,.6f,0f,.5f + .5f*shimmer.value)
+        triangle(0f,0f,1f,1f,.6f,0f,.65f)
         triangle(.6f,0f,1f,0f,1f,1f,1f)
     }
 }

@@ -16,24 +16,38 @@ class PanelNavigationTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
     @Test fun swipesReachBothPanelsAndStopAtOuterLimits() {
-        compose.onNodeWithContentDescription("Opciones del escritorio y navegación").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Zona vacía del escritorio").assertIsDisplayed()
         compose.onRoot().performTouchInput { swipeLeft() }
         compose.onNodeWithText("Aplicaciones").assertIsDisplayed()
         compose.onRoot().performTouchInput { swipeLeft() }
         compose.onNodeWithText("Aplicaciones").assertIsDisplayed()
         compose.onRoot().performTouchInput { swipeRight() }
-        compose.onNodeWithContentDescription("Opciones del escritorio y navegación").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Zona vacía del escritorio").assertIsDisplayed()
         compose.onRoot().performTouchInput { swipeRight() }
         compose.onNodeWithText("Herramientas").assertIsDisplayed()
         compose.onRoot().performTouchInput { swipeRight() }
         compose.onNodeWithText("Herramientas").assertIsDisplayed()
     }
 
-    @Test fun optionsProvideNavigationWithoutHorizontalSwipe() {
-        compose.onNodeWithContentDescription("Opciones del escritorio y navegación").performClick()
-        compose.onNodeWithText("Herramientas").performClick()
-        compose.onNodeWithContentDescription("Ajustes").assertIsDisplayed()
+    @Test fun longPressOpensSingleSettingsDestinationAndBackReturnsHome() {
+        compose.onNodeWithContentDescription("Zona vacía del escritorio").performTouchInput { longClick() }
+        compose.onNodeWithText("Personalizar inicio").assertIsDisplayed()
+        compose.onNodeWithText("Ajustes").performClick()
+        compose.onNodeWithText("Configuración").assertIsDisplayed()
         compose.onNodeWithText("← Inicio").performClick()
-        compose.onNodeWithContentDescription("Opciones del escritorio y navegación").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Zona vacía del escritorio").assertIsDisplayed()
     }
+    @Test fun favoritePickerReturnsToSettingsAndHomeButtonReturnsHome() {
+        compose.onNodeWithContentDescription("Zona vacía del escritorio").performTouchInput { longClick() }
+        compose.onNodeWithText("Ajustes").performClick()
+        compose.onNodeWithText("GELIA · Configurar").performScrollTo().performClick()
+        compose.onNodeWithText("Elegir favorito").assertIsDisplayed()
+        compose.onNodeWithText("Quitar este favorito").performClick()
+        compose.onNodeWithText("Configuración").assertIsDisplayed()
+        compose.onNodeWithText("← Inicio").performClick()
+        compose.onNodeWithContentDescription("Zona vacía del escritorio").assertIsDisplayed()
+        compose.onNodeWithText("Configuración").assertDoesNotExist()
+    }
+
+
 }

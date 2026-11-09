@@ -1,6 +1,7 @@
 package site.neobash.launcher
 
 import androidx.compose.ui.test.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -50,4 +51,19 @@ class AppsScreenTest {
         compose.onNodeWithText("Eliminada").assertIsNotEnabled().performClick()
         assertFalse(launched)
     }
+    @Test fun typingSearchFiltersAccentsAndClearingRestoresApps() {
+        compose.setContent {
+            var query by remember { mutableStateOf("") }
+            NeobashTheme(false) {
+                AppsScreen(listOf(LaunchableApp("a", "Cámara"), LaunchableApp("b", "Agenda")),
+                    false, false, query, { query = it }, {}, {}, {}, { _, _ -> AppIconResult() })
+            }
+        }
+        compose.onNode(hasSetTextAction()).performTextInput("camara")
+        compose.onNodeWithText("Cámara").assertIsDisplayed()
+        compose.onNodeWithText("Agenda").assertDoesNotExist()
+        compose.onNode(hasSetTextAction()).performTextClearance()
+        compose.onNodeWithText("Agenda").assertIsDisplayed()
+    }
+
 }

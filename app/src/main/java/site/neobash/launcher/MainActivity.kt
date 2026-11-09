@@ -13,7 +13,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -28,23 +27,23 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.paneTitle
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import site.neobash.launcher.core.designsystem.NeobashTheme
+import site.neobash.launcher.core.designsystem.NeobashMotion
+import site.neobash.launcher.core.data.TransitionMeasurement
 import site.neobash.launcher.core.model.SkyMode
 import site.neobash.launcher.feature.apps.AppsScreen
 import site.neobash.launcher.feature.home.*
 import site.neobash.launcher.feature.settings.SettingsScreen
-import site.neobash.launcher.feature.settings.FavoriteLabels
 import site.neobash.launcher.feature.tools.ToolsScreen
 
 class MainActivity : ComponentActivity() {
     private val model: HomeViewModel by viewModels()
     private var homeSignal by mutableIntStateOf(0)
-    private val homeRoleRequest = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { model.refresh() }
+    private val homeRoleRequest = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { /* Role result does not invalidate installed applications. */ }
 
     private fun chooseDefaultHome() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -82,14 +81,28 @@ class MainActivity : ComponentActivity() {
             var mode by rememberSaveable { mutableStateOf(SkyMode.AUTO) }
             var contextMenu by rememberSaveable { mutableStateOf(false) }
             var about by rememberSaveable { mutableStateOf(false) }
-            var favoritesMenu by rememberSaveable { mutableStateOf(false) }
             var pickerSettings by rememberSaveable { mutableStateOf(false) }
             var pickerReturn by rememberSaveable { mutableIntStateOf(1) }
-            fun navigate(index: Int) { scope.launch { pager.animateScrollToPage(index, animationSpec = tween(240)) } }
-            fun home() { settings = false; slot = -1; query = ""; contextMenu = false; about = false; favoritesMenu = false; navigate(1) }
+            val measurement = remember { TransitionMeasurement() }
+            val reducedMotion = state.preferences.reduceMotion || !android.animation.ValueAnimator.areAnimatorsEnabled()
+            fun navigate(index: Int) { scope.launch {
+                measurement.begin(index)
+                if (reducedMotion) pager.scrollToPage(index)
+                else pager.animateScrollToPage(index, animationSpec = NeobashMotion.panel())
+            } }
+            LaunchedEffect(pager.targetPage) {
+                if (pager.targetPage != pager.settledPage) measurement.begin(pager.targetPage)
+            }
+            LaunchedEffect(pager.settledPage, pager.isScrollInProgress) {
+                if (!pager.isScrollInProgress) {
+                    withFrameNanos { }
+                    measurement.finish(pager.settledPage)
+                }
+            }
+            fun home() { settings = false; slot = -1; query = ""; contextMenu = false; about = false; navigate(1) }
             fun pick(index: Int) {
                 pickerSettings = settings; pickerReturn = pager.currentPage
-                slot = index; query = ""; favoritesMenu = false; navigate(2)
+                slot = index; query = ""; navigate(2)
             }
             fun finishPicker() {
                 slot = -1; query = ""; settings = pickerSettings
@@ -101,14 +114,14 @@ class MainActivity : ComponentActivity() {
                 keyboard?.hide()
             }
             LaunchedEffect(homeSignal) { if (homeSignal > 0) {
-                settings = false; query = ""; slot = -1; contextMenu = false; about = false; favoritesMenu = false; pager.scrollToPage(1)
+                settings = false; query = ""; slot = -1; contextMenu = false; about = false; pager.scrollToPage(1)
             } }
             SideEffect {
                 val bars = if (state.preferences.light) SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
                     else SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                 enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
             }
-            BackHandler(enabled = !contextMenu && !about && !favoritesMenu) { if (slot >= 0) finishPicker() else home() }
+            BackHandler(enabled = !contextMenu && !about) { if (slot >= 0) finishPicker() else home() }
             NeobashTheme(state.preferences.light) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     // Leave system gesture edges outside the pager and all pointer handlers.
@@ -118,18 +131,20 @@ class MainActivity : ComponentActivity() {
                         }
                         if (settings && slot < 0) Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                             SettingsScreen(state.preferences, state.apps, mode, { mode = it }, model::light,
-                                { pick(it) }, ::chooseDefaultHome, { home() })
+                                { pick(it) }, ::chooseDefaultHome, { home() }, model::component, model::count,
+                                model::move, model::resetLayout, model::reduceMotion)
                         } else {
                             val panelNames = listOf("Herramientas", "Inicio", "Aplicaciones")
                             HorizontalPager(pager, Modifier.weight(1f).semantics {
                                 paneTitle = panelNames[pager.currentPage]
-                                if (slot < 0) customActions = panelNames.indices.filter { it != pager.currentPage }.map { target ->
-                                    CustomAccessibilityAction("Ir a ${panelNames[target]}") { navigate(target); true }
-                                }
+                                customActions = if (slot >= 0) emptyList() else
+                                    listOf(CustomAccessibilityAction("Abrir ajustes") { settings = true; true }) +
+                                        panelNames.indices.filter { it != pager.currentPage }.map { target ->
+                                            CustomAccessibilityAction("Ir a ${panelNames[target]}") { navigate(target); true }
+                                        }
                             }, userScrollEnabled = slot < 0, key = { it }) { index ->
                                 when (index) {
-                                    0 -> ToolsScreen({ home() }, { settings = true }, { favoritesMenu = true },
-                                        { model.light(!state.preferences.light) }, { about = true }, ::chooseDefaultHome)
+                                    0 -> ToolsScreen({ home() }, { settings = true })
                                     1 -> HomeScreen(state, model.celestial, mode, { apps() }, { contextMenu = true }, { index ->
                                         val app = state.apps.find { it.id == state.preferences.favorites[index] }
                                         if (app != null) model.open(app) else pick(index)
@@ -148,38 +163,23 @@ class MainActivity : ComponentActivity() {
                     if (contextMenu) ModalBottomSheet(onDismissRequest = { contextMenu = false }) {
                         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).navigationBarsPadding()) {
                             Text("Escritorio", style = MaterialTheme.typography.titleLarge)
-                            TextButton(onClick = { contextMenu = false; navigate(0) }) { Text("Herramientas") }
-                            TextButton(onClick = { contextMenu = false; apps() }) { Text("Aplicaciones") }
-                            TextButton(onClick = { contextMenu = false; settings = true }) { Text("⚙  Ajustes") }
-                            TextButton(onClick = { contextMenu = false; favoritesMenu = true }) { Text("Personalizar favoritos") }
-                            TextButton(onClick = { contextMenu = false; model.light(!state.preferences.light) }) { Text("Cambiar tema") }
-                            TextButton(onClick = { contextMenu = false; about = true }) { Text("Información del launcher") }
+                            TextButton(onClick = { contextMenu = false; settings = true }) { Text("Personalizar inicio") }
+                            TextButton(onClick = { contextMenu = false; settings = true }) { Text("Ajustes") }
+                            TextButton(onClick = { contextMenu = false; about = true }) { Text("Información") }
                             Spacer(Modifier.height(16.dp))
                         }
                     }
-                    if (favoritesMenu) ModalBottomSheet(onDismissRequest = { favoritesMenu = false }) {
-                        Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp).navigationBarsPadding()) {
-                            Text("Favoritos", style = MaterialTheme.typography.titleLarge)
-                            FavoriteLabels.forEachIndexed { index, label ->
-                                val app = state.apps.find { it.id == state.preferences.favorites[index] }
-                                TextButton(onClick = { pick(index) }, modifier = Modifier.fillMaxWidth()) {
-                                    Text("$label · ${app?.label ?: "Elegir app"}")
-                                }
-                            }
-                        }
-                    }
                     if (about) AlertDialog(onDismissRequest = { about = false },
-                        title = { Text("Neobash 0.2.1") },
+                        title = { Text("Neobash 0.2.2") },
                         text = { Text("Launcher nativo · Kotlin y Compose. Clima y astronomía simulados. El arco celeste es una representación estilizada. Gestos HyperOS pendientes de pruebas físicas.") },
                         confirmButton = { TextButton(onClick = { about = false }) { Text("Cerrar") } })
                 }
             }
         }
     }
-    override fun onResume() { super.onResume(); model.refresh() }
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.hasCategory(Intent.CATEGORY_HOME)) { homeSignal++; model.refresh() }
+        if (intent.hasCategory(Intent.CATEGORY_HOME)) { homeSignal++ }
     }
 }
