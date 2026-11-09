@@ -103,3 +103,39 @@ Pendientes conocidos: clima y astronomía simulados; orientación lunar aparente
 iconos reales/personalizables, voz, búsqueda universal y perfiles de trabajo.
 La vista Día/Noche se conserva durante recreación, pero no tras reiniciar el proceso.
 Las aplicaciones se recargan al reanudar o recibir HOME, sin receptor continuo.
+
+## Iteración 0.2.2 · 2026-11-09
+
+Base `31e6895` de main; rama `perf/navigation-0.2.2`. Se conservaron los cambios
+previos y se comprobaron todas las ramas remotas, incorporadas en main.
+
+Validación con `source scripts/android-env.sh` y Gradle 8.11.1 instalado:
+
+```bash
+gradle --no-daemon --console=plain assembleDebug testDebugUnitTest lintDebug
+```
+
+El Wrapper intentó descargar esa misma versión y agotó su timeout de 10 s;
+por eso se usó la instalación existente, sin cambiar versiones ni el workflow.
+
+- `assembleDebug`: APK `0.2.2` / versionCode `4`, applicationId
+  `site.neobash.launcher`, minSdk 26, target/compile 35.
+- `testDebugUnitTest`: 24 pruebas, cero fallos/errores/omisiones.
+- `lintDebug`: cero errores y cero advertencias en el informe final.
+- Firma debug v2 verificada con apksigner; APK fuera de Git.
+- `bash -n scripts/measure-drawer.sh` y `git diff --check`: correctos.
+- `adb devices -l`: ningún dispositivo conectado. Sin prueba física o emulador.
+
+Además de las coberturas anteriores, se comprueban reutilización de metadatos,
+actualización/revisión y deshabilitación por paquete sin sustituir otras entradas,
+invalidación de iconos, propagación de broadcast de desinstalación a HomeState,
+persistencia/reordenación/cantidad/restauración de favoritos, búsqueda en Compose,
+pulsación larga, destino único de ajustes y regreso del selector. El intent HOME
+se entrega mediante ActivityController y se verifica el regreso desde Apps;
+ActivityScenario sigue controlando los casos normales de navegación. El fallback
+anterior a RoleManager se comprueba en API 28. El diálogo de rol API 29+ y las
+restricciones del fabricante necesitan dispositivo real.
+
+No hay resultados de rendimiento A/B. El protocolo y el script se documentan en
+[ITERATION_0.2.2.md](ITERATION_0.2.2.md), con separación de carga, frames y reposo del
+pager. No se atribuye una mejora cuantitativa al cambio sin esa comparación.

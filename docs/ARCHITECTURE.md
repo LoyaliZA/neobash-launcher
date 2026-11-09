@@ -43,3 +43,14 @@ y lápiz según eventos y capacidades del hardware. Un documento híbrido podrá
 combinar bloques sin acoplarse a favoritos o PackageManager. Exportación mediante
 URI/Storage Access Framework; grabación solo tras acción explícita y permiso
 contextual. Ninguno de estos permisos o editores se introduce ahora.
+
+## Consolidación 0.2.2
+
+El catálogo vive en AppsRepository, retenido por HomeViewModel; el descubrimiento
+inicial y los cambios incrementales de paquetes son sus únicos productores.
+El ciclo de vida de Activity/HOME no provoca consultas completas. Un receiver
+liberado con el ViewModel agrupa eventos de paquetes y serializa invalidaciones.
+PreferencesRepository conserva las claves anteriores y añade distribución y
+reducción de movimiento, con movimientos/restauración atómicos en DataStore.
+SettingsScreen es el destino único para configuración y personalización básica.
+Véase ITERATION_0.2.2.md para alcance, mediciones y limitaciones.
