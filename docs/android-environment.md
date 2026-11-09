@@ -1,7 +1,8 @@
 # Entorno Android y persistencia en Codex Cloud
 
-El repositorio contiene únicamente instrucciones y scripts de infraestructura;
-todavía no se ha iniciado la implementación del launcher.
+El repositorio incluye la aplicación Android 0.1.0 y los scripts de infraestructura.
+Las secciones históricas siguientes documentan la preparación previa; los resultados
+de la implementación actual están en [VALIDATION.md](VALIDATION.md).
 
 ## Instalación desde un checkout nuevo
 
