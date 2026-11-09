@@ -11,10 +11,10 @@ android {
   applicationId 'site.neobash.launcher'
   minSdk 26
   targetSdk 35
-  versionCode 3
-  versionName '0.2.1'
+  versionCode 4
+  versionName '0.2.2'
  }
- buildFeatures { compose true }
+ buildFeatures { compose true; buildConfig true }
  testOptions { unitTests.includeAndroidResources = true }
  compileOptions {
   sourceCompatibility JavaVersion.VERSION_17

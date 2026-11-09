@@ -17,3 +17,12 @@ sin repetición infinita; Animatable respeta escala de duración del sistema.
 Sin blur. Marcas lineales de favoritos representan slots configurables, no
 identidades de aplicaciones. Voz figura como función futura en configuración.
 Los recursos oficiales y refinamientos de transiciones quedan pendientes.
+
+## Movimiento y configuración · 0.2.2
+
+`NeobashMotion.panel()` centraliza el desplazamiento finito de 240 ms con
+FastOutSlowInEasing. Navegación instantánea con reducción de movimiento o escala
+de animación desactivada. Se conservan ripples Material acotados; sin brillo de
+entrada ni bucles decorativos. Evitar animación de tamaño o de todas las filas
+del cajón. HOME ofrece opciones por pulsación larga; Herramientas y las acciones
+semánticas enlazan al único destino Ajustes. Ver ITERATION_0.2.2.md.

@@ -1,4 +1,4 @@
-# Neobash Launcher · 0.1.0
+# Neobash Launcher · 0.2.2
 
 Launcher Android nativo, offline y minimalista con Jetpack Compose. Android 8.0+
 (API 26); objetivo y compilación API 35. Application ID: `site.neobash.launcher`.
@@ -27,7 +27,7 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`. No se versiona.
 
 ## Android Studio o Cursor en Windows
 
-1. Clonar el repositorio y cambiar a `feature/initial-launcher`.
+1. Clonar el repositorio y cambiar a `main` (o la rama del PR que se quiera probar).
 2. Instalar Android Studio y SDK Platform 35, Build Tools 35.0.0 y Platform Tools
    con SDK Manager. Usar JDK 21 (17 también es compatible con esta cadena).
 3. Abrir la raíz en Android Studio y sincronizar Gradle. En Cursor, configurar
@@ -47,7 +47,7 @@ El workflow compila, ejecuta pruebas y lint, y guarda el APK como artefacto por
 
 Copiar el APK al dispositivo, abrirlo desde Archivos y permitir a esa aplicación
 instalar apps desconocidas cuando Android lo solicite. Abrir Neobash y entrar en
-Configuración → Elegir launcher predeterminado; también se puede usar Ajustes →
+Inicio → pulsación larga en zona vacía → Ajustes → Elegir launcher predeterminado; también se puede usar Ajustes →
 Aplicaciones → Apps predeterminadas → Inicio. Para revertir, elegir el launcher
 original allí. Desinstalar borra preferencias; actualizar requiere la misma firma.
 Es una compilación debug para pruebas, no una distribución de producción.
@@ -82,3 +82,9 @@ Ver [cambios y pruebas de dispositivo](docs/ITERATION_0.2.md) y
 
 Navegación sin barra inferior, Home adaptable e iconos originales en el cajón.
 Ver [cambios y validación](docs/ITERATION_0.2.1.md).
+
+## Iteración 0.2.2
+
+Catálogo en memoria con actualizaciones por paquete, configuración centralizada,
+distribución de HOME persistente y reducción de movimiento.
+Ver [cambios, protocolo de medición y límites](docs/ITERATION_0.2.2.md).
