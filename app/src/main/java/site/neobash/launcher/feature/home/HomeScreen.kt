@@ -29,44 +29,59 @@ import java.util.Locale
 @Composable fun HomeScreen(state: HomeState, celestial: CelestialData, mode: SkyMode,
     onApps: () -> Unit, onContextMenu: () -> Unit, onFavorite: (Int) -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val wide = maxWidth >= 600.dp
         val windowWidth = maxWidth
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(if (wide) 48.dp else 24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        val windowHeight = maxHeight
+        val wide = windowWidth >= 600.dp
+        val compact = maxHeight < 780.dp
+        val padding = if (wide) 32.dp else 16.dp
+        val gap = if (compact) 8.dp else 16.dp
+        val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+        val scroll = rememberScrollState()
+        // Measure natural content, then enable scrolling only on actual overflow. Text scales
+        // normally, so large fonts and short/multiwindow screens retain every control.
+        Column(Modifier.fillMaxSize().verticalScroll(scroll, enabled = scroll.maxValue > 0)
+            .padding(horizontal = padding, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(gap)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 FacetedN()
+                IconButton(onClick = onContextMenu) {
+                    Text("⚙", modifier = Modifier.semantics { contentDescription = "Opciones del escritorio y navegación" }, fontSize = 22.sp)
+                }
             }
-            if (wide) Row(horizontalArrangement = Arrangement.spacedBy(48.dp)) {
-                Column(Modifier.weight(1f)) { ClockHeader(state) }
-                Column(Modifier.weight(1f)) { CelestialCycle(celestial, state.now.toLocalTime(), mode) }
+            if (wide) Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                Column(Modifier.weight(1f)) { ClockHeader(state, compact) }
+                Column(Modifier.weight(1f)) { CelestialCycle(celestial, state.now.toLocalTime(), mode,
+                    arcHeight = (windowHeight * .2f).coerceIn(88.dp, 156.dp)) }
             } else {
-                ClockHeader(state)
-                CelestialCycle(celestial, state.now.toLocalTime(), mode)
+                ClockHeader(state, compact)
+                CelestialCycle(celestial, state.now.toLocalTime(), mode,
+                    arcHeight = (windowHeight * .17f).coerceIn(88.dp, 156.dp))
             }
-            Text("TU ESPACIO", color = MaterialTheme.colorScheme.outline, style = MaterialTheme.typography.labelMedium)
-            // Two columns on narrow or large-font windows preserve readable touch targets.
-            val columns = if (windowWidth < 380.dp || androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) 2 else 4
-            FavoriteLabels.indices.chunked(columns).forEach { indices ->
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    indices.forEach { index ->
-                        val id = state.preferences.favorites[index]
-                        val app = state.apps.find { it.id == id }
-                        Surface(Modifier.weight(1f).clickable { onFavorite(index) }, shape = MaterialTheme.shapes.medium,
-                            color = MaterialTheme.colorScheme.surface) {
-                            Column(Modifier.padding(horizontal = 8.dp, vertical = 12.dp)) {
-                                FavoriteMark(index)
-                                Spacer(Modifier.height(8.dp))
-                                Text(app?.label ?: FavoriteLabels[index], style = MaterialTheme.typography.labelLarge)
-                                if (app == null) Text(if (id == null) "Elegir app" else "No disponible", style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("TU ESPACIO", color = MaterialTheme.colorScheme.outline, style = MaterialTheme.typography.labelMedium)
+                val columns = if (windowWidth - padding * 2 < 320.dp || fontScale > 1.3f) 2 else 4
+                FavoriteLabels.indices.chunked(columns).forEach { indices ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        indices.forEach { index ->
+                            val id = state.preferences.favorites[index]
+                            val app = state.apps.find { it.id == id }
+                            Surface(Modifier.weight(1f).heightIn(min = 72.dp).clickable { onFavorite(index) },
+                                shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
+                                Column(Modifier.padding(horizontal = 8.dp, vertical = 10.dp)) {
+                                    FavoriteMark(index)
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(app?.label ?: FavoriteLabels[index], style = MaterialTheme.typography.labelLarge,
+                                        maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                    if (app == null) Text(if (id == null) "Elegir app" else "No disponible", style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     }
                 }
             }
-            // Only this empty desktop zone recognizes vertical swipes and long presses.
-            // The scrollable content and controls keep their own gestures.
-            Box(Modifier.fillMaxWidth().height(56.dp)
+            Box(Modifier.fillMaxWidth().height(48.dp)
                 .semantics {
                     contentDescription = "Zona vacía del escritorio"
                     onLongClick("Abrir opciones del escritorio") { onContextMenu(); true }
@@ -77,30 +92,38 @@ import java.util.Locale
                     detectVerticalDragGestures(
                         onDragStart = { drag = 0f },
                         onVerticalDrag = { change, amount -> change.consume(); drag += amount },
-                        onDragEnd = { if (drag < -40.dp.toPx()) onApps() },
+                        onDragEnd = { if (drag < -32.dp.toPx()) onApps() },
                         onDragCancel = { drag = 0f })
                 })
-            Surface(Modifier.fillMaxWidth().clickable(onClick = onApps), shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceVariant) {
-                Row(Modifier.padding(horizontal = 18.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Surface(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onApps),
+                shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceVariant) {
+                Row(Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Text("⌕")
                     Text("Buscar aplicaciones", Modifier.weight(1f))
                     Text("↑", style = MaterialTheme.typography.titleLarge)
                 }
             }
-            TextButton(onClick = onApps, modifier = Modifier.fillMaxWidth()) { Text("Todas las aplicaciones") }
         }
     }
 }
-@Composable private fun ClockHeader(state: HomeState) {
-    Text(state.now.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", Locale.forLanguageTag("es"))),
-        style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(state.now.format(DateTimeFormatter.ofPattern("HH:mm")), fontSize = 76.sp, fontWeight = FontWeight.Thin, letterSpacing = (-4).sp)
-        Column(Modifier.padding(top = 16.dp)) {
-            Text("☀ 24°", style = MaterialTheme.typography.headlineSmall)
-            Text("UV 3 · Moderado", style = MaterialTheme.typography.bodySmall)
-            Text("Clima simulado", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+@Composable private fun ClockHeader(state: HomeState, compact: Boolean) {
+    BoxWithConstraints {
+        val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+        val clockSize = minOf(if (compact) 64f else 76f, maxWidth.value / (2.8f * fontScale)).sp
+        Column {
+        Text(state.now.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", Locale.forLanguageTag("es"))),
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(state.now.format(DateTimeFormatter.ofPattern("HH:mm")), fontSize = clockSize, maxLines = 1, softWrap = false,
+                fontWeight = FontWeight.Thin, letterSpacing = (-3).sp)
+            Column(Modifier.padding(top = 8.dp)) {
+                Text("☀ 24°", style = MaterialTheme.typography.titleMedium)
+                Text("UV 3 · Moderado", style = MaterialTheme.typography.bodySmall)
+                Text("Clima simulado", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         }
     }
 }

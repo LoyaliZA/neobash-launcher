@@ -22,7 +22,7 @@ N es el número de ejecución, y caduca a los 7 días.
    `app-debug.apk`.
 6. Toca el APK. Si Android lo solicita, permite temporalmente a Archivos instalar
    aplicaciones desconocidas; después puedes retirar ese permiso.
-7. Abre Neobash → Configuración → Elegir launcher predeterminado. Conserva la
+7. Abre Neobash → engranaje → Herramientas → Elegir launcher predeterminado. Conserva la
    opción de volver al launcher original desde Ajustes → Apps predeterminadas → Inicio.
 
 Si no hay artefacto, comprueba que la ejecución haya terminado correctamente,
@@ -41,7 +41,7 @@ Incluye `workflow_dispatch`. GitHub exige que el archivo del workflow exista en
 la rama predeterminada para habilitar este disparador. Mientras este cambio solo
 esté en la rama de desarrollo, se puede obtener el APK mediante la ejecución del
 PR, sin fusionarlo. Una vez que el workflow esté en `main`, abre Actions →
-Android Debug APK → **Run workflow**, selecciona `feature/initial-launcher`
+Android Debug APK → **Run workflow**, selecciona `feature/ui-refinement-0.2.1`
 (o la rama que quieras probar) y pulsa **Run workflow**. Requiere permiso de escritura.
 
 ## Alcance de la distribución y firma
@@ -60,6 +60,6 @@ rechaza la actualización por firma incompatible, desinstala la versión anterio
 antes de instalar esta; se perderán los favoritos y preferencias locales. No se
 incluyen claves privadas ni secretos de firma en el repositorio o artefacto.
 
-La ejecución de Actions comprueba compilación y lógica JVM. No verifica HOME,
+La ejecución de Actions comprueba compilación, lógica JVM y pruebas Compose en Robolectric. No verifica HOME,
 gestos, HyperOS ni funcionamiento en un teléfono: esas pruebas se realizan al
 instalar y usar la aplicación.

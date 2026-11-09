@@ -16,16 +16,19 @@ sin QUERY_ALL_PACKAGES. Primera versión limitada al perfil de usuario actual.
 `PreferencesRepository` guarda cuatro slots y tema en Preferences DataStore.
 Los favoritos desaparecidos mantienen su referencia para poder recuperarse
 tras reinstalar; se muestran como no disponibles y permiten reasignación.
-No se persisten iconos ni se cargan imágenes de paquetes: se usan marcas lineales
-provisionales de slot. La lista muestra nombre y paquete para desambiguar.
+Los favoritos conservan marcas lineales de slot. El cajón muestra nombre e icono
+original sin paquetes visibles. `AppIconsRepository` carga en IO y mantiene una
+caché LRU de 4 MiB por componente/revisión/tamaño/configuración; sin caché en disco.
 
 `core/model/Celestial.kt` separa proveedor, efemérides independientes de Sol/Luna,
 progreso por tránsito y geometría de semicírculo. `CelestialCycle` representa ambos
 sobre un único arco circular estilizado. La procedencia sigue explícitamente
 simulada. Ver contratos, convenciones y limitaciones en [Iteración 0.2](ITERATION_0.2.md).
-La navegación principal es un HorizontalPager Herramientas–Home–Apps, con botones
-accesibles alternativos. Ajustes y selección de favorito conservan sus rutas.
-El menú contextual es un ModalBottomSheet desde una zona vacía del escritorio.
+La navegación principal es un HorizontalPager Herramientas–Home–Apps, sin barra
+inferior. Opciones del escritorio y acciones semánticas ofrecen rutas accesibles. Ajustes y selección de favorito conservan sus rutas.
+El menú contextual es un ModalBottomSheet desde el engranaje o una zona vacía.
+Home habilita scroll solo ante overflow medido; `feature/tools` prepara el panel
+para evolucionar a productividad. Ver [Iteración 0.2.1](ITERATION_0.2.1.md).
 
 `core/designsystem` define ambos esquemas. `feature/apps`, `feature/settings` y
 `feature/celestial` aíslan UI. Inyección manual en ViewModel; sin framework DI.
