@@ -120,3 +120,7 @@ menú largo, rol HOME API 29+, instalación/desinstalación de favoritos, reinic
 TalkBack/teclado, escalas 0/.5/1, opción Reducir movimiento, claro/oscuro,
 refresco variable, tablets, multiventana, rotación y fuentes 200 %.
 No se atribuye soporte verificado a un fabricante sin estas pruebas.
+
+El workflow usa scripts/ci-android-checks.sh para recuperar hasta tres veces
+fallos transitorios de descarga en el mismo runner. Un error de código, pruebas
+o lint no habilita ese reintento; el artefacto solo se sube después de éxito.

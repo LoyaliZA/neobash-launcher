@@ -187,3 +187,11 @@ el diálogo RoleManager API 29+. HyperOS 3, Android estándar, tablets, densidad
 refresco variable, TalkBack, escalas y persistencia tras matar/reinstalar el proceso
 requieren el protocolo físico de [FLUID_MOTION](FLUID_MOTION.md).
 El workflow de PR conserva build/test/lint y APK debug descargable durante 7 días.
+
+En Actions, los dos primeros intentos del run 42570532437 fallaron por HTTP 504
+al descargar Gradle y luego kotlin-compiler-embeddable, antes de validar el código.
+Se añadió ci-android-checks.sh: hasta tres intentos en el mismo runner solo ante
+fallos de red transitorios; fallos de compilación, pruebas o lint detienen el job.
+El script pasó bash -n y cuatro escenarios simulados: red recuperable, fallo de
+pruebas, compilación y mensaje mixto red/pruebas. Solo el primero se reintenta.
+No cambia las comprobaciones ni la condición de subida del APK.
