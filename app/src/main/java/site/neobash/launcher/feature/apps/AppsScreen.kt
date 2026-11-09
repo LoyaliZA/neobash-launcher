@@ -16,7 +16,7 @@ import site.neobash.launcher.core.model.*
         TextButton(onClick = onBack) { Text("← Inicio") }
         Text(if (picking) "Elegir favorito" else "Aplicaciones", style = MaterialTheme.typography.headlineLarge)
         OutlinedTextField(query, onQuery, Modifier.fillMaxWidth().padding(vertical = 16.dp),
-            label = { Text("Buscar aplicaciones") }, singleLine = true)
+            placeholder = { Text("Buscar aplicaciones") }, shape = MaterialTheme.shapes.extraLarge, singleLine = true)
         if (picking) TextButton(onClick = onClear) { Text("Quitar este favorito") }
         val filtered = remember(apps, query) { filterApps(apps, query) }
         if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
