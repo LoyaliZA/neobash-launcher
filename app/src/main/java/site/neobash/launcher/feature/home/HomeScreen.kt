@@ -1,5 +1,8 @@
 package site.neobash.launcher.feature.home
 
+import site.neobash.launcher.core.designsystem.*
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -27,6 +30,7 @@ import java.util.Locale
 @Composable fun HomeScreen(state: HomeState, celestial: CelestialData, mode: SkyMode,
     onApps: () -> Unit, onContextMenu: () -> Unit, onFavorite: (Int) -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
+        val celestialSize = state.preferences.blocks["celestial"]?.size ?: BlockSize.MEDIUM
         val windowWidth = maxWidth
         val windowHeight = maxHeight
         val wide = windowWidth >= 600.dp
@@ -37,7 +41,8 @@ import java.util.Locale
         val scroll = rememberScrollState()
         // Measure natural content, then enable scrolling only on actual overflow. Text scales
         // normally, so large fonts and short/multiwindow screens retain every control.
-        Column(Modifier.fillMaxSize().verticalScroll(scroll, enabled = scroll.maxValue > 0)
+        Box(Modifier.fillMaxSize().verticalScroll(scroll, enabled = scroll.maxValue > 0)) {
+        Column(Modifier.fillMaxWidth().animateContentSize(if (LocalReducedMotion.current) snap() else NeobashMotion.spatial())
             .padding(horizontal = padding, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(gap)) {
             FacetedN()
@@ -46,12 +51,12 @@ import java.util.Locale
                     ClockHeader(state, compact)
                 }
                 if (HomeComponent.CELESTIAL !in state.preferences.hiddenComponents) Column(Modifier.weight(1f)) {
-                    CelestialCycle(celestial, state.now.toLocalTime(), mode,
+                    CelestialCycle(celestial, state.now.toLocalTime(), mode, blockSize = celestialSize,
                         arcHeight = (windowHeight * .2f).coerceIn(88.dp, 156.dp))
                 }
             } else {
                 if (HomeComponent.CLOCK !in state.preferences.hiddenComponents) ClockHeader(state, compact)
-                if (HomeComponent.CELESTIAL !in state.preferences.hiddenComponents) CelestialCycle(celestial, state.now.toLocalTime(), mode,
+                if (HomeComponent.CELESTIAL !in state.preferences.hiddenComponents) CelestialCycle(celestial, state.now.toLocalTime(), mode, blockSize = celestialSize,
                     arcHeight = (windowHeight * .17f).coerceIn(88.dp, 156.dp))
             }
             if (HomeComponent.FAVORITES !in state.preferences.hiddenComponents) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -62,12 +67,12 @@ import java.util.Locale
                         indices.forEach { index ->
                             val id = state.preferences.favorites[index]
                             val app = state.apps.find { it.id == id }
-                            Surface(Modifier.weight(1f).heightIn(min = 72.dp).clickable { onFavorite(index) },
+                            Surface(Modifier.weight(1f).heightIn(min = 72.dp).fluidClickable { onFavorite(index) },
                                 shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
                                 Column(Modifier.padding(horizontal = 8.dp, vertical = 10.dp)) {
                                     FavoriteMark(index)
                                     Spacer(Modifier.height(6.dp))
-                                    Text(app?.label ?: FavoriteLabels[index], style = MaterialTheme.typography.labelLarge,
+                                    Text(state.preferences.favoriteLabel(index, app?.label ?: FavoriteLabels[index]), style = MaterialTheme.typography.labelLarge,
                                         maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                     if (app == null) Text(if (id == null) "Elegir app" else "No disponible", style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -100,6 +105,7 @@ import java.util.Locale
                     Text("↑", style = MaterialTheme.typography.titleLarge)
                 }
             }
+        }
         }
     }
 }

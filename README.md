@@ -1,4 +1,4 @@
-# Neobash Launcher · 0.2.2
+# Neobash Launcher · 0.3.0 — Fluid Motion
 
 Launcher Android nativo, offline y minimalista con Jetpack Compose. Android 8.0+
 (API 26); objetivo y compilación API 35. Application ID: `site.neobash.launcher`.
@@ -88,3 +88,10 @@ Ver [cambios y validación](docs/ITERATION_0.2.1.md).
 Catálogo en memoria con actualizaciones por paquete, configuración centralizada,
 distribución de HOME persistente y reducción de movimiento.
 Ver [cambios, protocolo de medición y límites](docs/ITERATION_0.2.2.md).
+
+## Iteración 0.3.0
+
+Pager interactivo con resortes, paneles retenidos, favoritos reactivos, búsqueda
+con foco coordinado, Ajustes animados y ciclo celeste redimensionable. Fundamentos
+de Smart Layout persistentes y Macrobenchmark opcional para teléfonos físicos.
+Ver [decisiones, arquitectura y medición](docs/FLUID_MOTION.md).

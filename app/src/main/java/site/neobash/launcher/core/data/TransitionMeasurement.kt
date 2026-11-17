@@ -15,7 +15,8 @@ class TransitionMeasurement {
         started = SystemClock.elapsedRealtimeNanos()
     }
     fun finish(page: Int) {
-        if (!BuildConfig.DEBUG || target != page) return
+        if (!BuildConfig.DEBUG) return
+        if (target != page) { target = null; return }
         val elapsed = SystemClock.elapsedRealtimeNanos() - started
         Trace.beginSection("Neobash.panel.settled")
         try {

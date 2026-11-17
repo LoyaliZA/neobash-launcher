@@ -11,8 +11,16 @@ android {
   applicationId 'site.neobash.launcher'
   minSdk 26
   targetSdk 35
-  versionCode 4
-  versionName '0.2.2'
+  versionCode 5
+  versionName '0.3.0'
+ }
+ buildTypes {
+  benchmark {
+   initWith release
+   signingConfig signingConfigs.debug
+   matchingFallbacks = ['release']
+   debuggable false
+  }
  }
  buildFeatures { compose true; buildConfig true }
  testOptions { unitTests.includeAndroidResources = true }

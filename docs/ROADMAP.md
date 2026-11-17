@@ -11,3 +11,12 @@
 
 Fuera de esta fase: backend, cuentas, sincronización, IA, bloqueador, limpiadores,
 servicios de accesibilidad, grabación y modificaciones root.
+
+## Fluid Motion y siguientes versiones
+
+- 0.3.0: resortes compartidos, pager retenido, microinteracciones, tamaños del
+  ciclo celeste y contrato persistente de SmartBlock. Medición física pendiente.
+- 0.4: editor Smart Layout con ordenación y arrastrar/soltar, respetando tamaños,
+  alineaciones y preferencias preparadas en 0.3.
+- Posterior: Centro de Productividad; proveedores reales opcionales sin presentar
+  las simulaciones actuales como datos reales.

@@ -22,12 +22,19 @@ class PreferencesRepository(context: Context) {
     private val hiddenKey = stringSetPreferencesKey("home_hidden")
     private val countKey = intPreferencesKey("favorite_count")
     private val motionKey = booleanPreferencesKey("reduce_motion")
+    private val blocksKey = stringPreferencesKey("smart_blocks_v1")
     private val lightKey = booleanPreferencesKey("light")
     private fun slot(index: Int) = stringPreferencesKey("favorite_$index")
     val preferences = context.settings.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it }.map { data ->
         Preferences(List(4) { data[slot(it)] }, data[lightKey] ?: false,
             HomeComponent.entries.filter { it.name in (data[hiddenKey] ?: emptySet()) }.toSet(),
-            (data[countKey] ?: 4).coerceIn(1, 4), data[motionKey] ?: false)
+            (data[countKey] ?: 4).coerceIn(1, 4), data[motionKey] ?: false, BlockPreferencesCodec.decode(data[blocksKey]))
+    }
+    suspend fun setBlock(id: String, preferences: site.neobash.launcher.core.model.BlockPreferences) {
+        require(id in setOf("clock", "celestial", "favorites"))
+        context.settings.edit { data ->
+            data[blocksKey] = BlockPreferencesCodec.encode(BlockPreferencesCodec.decode(data[blocksKey]) + (id to preferences))
+        }
     }
     suspend fun setFavorite(index: Int, id: String?) {
         require(index in 0..3)
@@ -45,7 +52,7 @@ class PreferencesRepository(context: Context) {
         }
     } }
     suspend fun resetLayout() { context.settings.edit { data ->
-        data.remove(hiddenKey); data.remove(countKey)
+        data.remove(hiddenKey); data.remove(countKey); data.remove(blocksKey)
         repeat(4) { data.remove(slot(it)) }
     } }
     suspend fun setLight(light: Boolean) { context.settings.edit { it[lightKey] = light } }

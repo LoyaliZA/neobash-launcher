@@ -54,3 +54,13 @@ PreferencesRepository conserva las claves anteriores y añade distribución y
 reducción de movimiento, con movimientos/restauración atómicos en DataStore.
 SettingsScreen es el destino único para configuración y personalización básica.
 Véase ITERATION_0.2.2.md para alcance, mediciones y limitaciones.
+
+## Fluid Motion 0.3
+
+El pager oficial conserva vecinos; los estados de scroll viven encima de los
+paneles y Ajustes se representa como superficie animada sobre ellos. El sistema
+de movimiento está en core/designsystem/Motion.kt. SmartBlock/BlockPreferences
+separan identidad, tipo, visibilidad, tamaño y posición de la geometría Compose;
+DataStore añade un payload versionado sin sustituir las claves anteriores.
+El módulo macrobenchmark es opt-in y ajeno al runtime del launcher.
+Ver [contratos y decisiones](FLUID_MOTION.md).

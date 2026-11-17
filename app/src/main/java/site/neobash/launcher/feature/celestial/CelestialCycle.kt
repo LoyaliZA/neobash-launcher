@@ -3,6 +3,10 @@ package site.neobash.launcher.feature.celestial
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.runtime.getValue
+import site.neobash.launcher.core.designsystem.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -18,7 +22,13 @@ import site.neobash.launcher.core.model.*
 import java.time.LocalTime
 import kotlin.math.*
 
-@Composable fun CelestialCycle(data: CelestialData, time: LocalTime, mode: SkyMode, arcHeight: Dp = Dp.Unspecified) {
+@Composable fun CelestialCycle(data: CelestialData, time: LocalTime, mode: SkyMode, arcHeight: Dp = Dp.Unspecified, blockSize: BlockSize = BlockSize.MEDIUM) {
+    val baseHeight = if (arcHeight == Dp.Unspecified) 132.dp else arcHeight
+    val height by animateDpAsState(when (blockSize) {
+        BlockSize.COMPACT -> baseHeight * .72f
+        BlockSize.MEDIUM -> baseHeight
+        BlockSize.EXPANDED -> baseHeight * 1.45f
+    }, if (LocalReducedMotion.current) snap() else NeobashMotion.spatial(), label = "celestial size")
     val ink = MaterialTheme.colorScheme.onBackground
     val muted = MaterialTheme.colorScheme.outline
     val displayTime = when (mode) {
@@ -34,7 +44,7 @@ import kotlin.math.*
         (if (moon != null) "Luna sobre el horizonte, iluminación ${(data.illuminatedFraction * 100).roundToInt()} %." else "Luna fuera del arco.")
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text("CICLO CELESTE", style = MaterialTheme.typography.labelMedium, color = muted)
-        Canvas(Modifier.fillMaxWidth().then(if (arcHeight == Dp.Unspecified) Modifier.aspectRatio(2f) else Modifier.height(arcHeight)).padding(16.dp).semantics { contentDescription = description }) {
+        Canvas(Modifier.fillMaxWidth().height(height).padding(16.dp).semantics { contentDescription = description }) {
             // Same radius on both axes: never stretch the semicircle into an ellipse.
             val radius = min(size.width / 2, size.height - 12.dp.toPx()).coerceAtLeast(0f)
             val center = Offset(size.width / 2, size.height - 2.dp.toPx())

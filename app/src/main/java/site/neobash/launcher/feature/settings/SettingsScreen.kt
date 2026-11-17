@@ -14,7 +14,8 @@ val FavoriteLabels = listOf("GELIA", "Notas", "Tareas", "Agenda")
     onSkyMode: (SkyMode) -> Unit, onLight: (Boolean) -> Unit, onFavorite: (Int) -> Unit,
     onHomeSettings: () -> Unit, onBack: () -> Unit,
     onComponent: (HomeComponent, Boolean) -> Unit, onCount: (Int) -> Unit,
-    onMove: (Int, Int) -> Unit, onReset: () -> Unit, onReduceMotion: (Boolean) -> Unit) {
+    onMove: (Int, Int) -> Unit, onReset: () -> Unit, onReduceMotion: (Boolean) -> Unit,
+    onBlock: (String, BlockPreferences) -> Unit = { _, _ -> }) {
     Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TextButton(onClick = onBack) { Text("← Inicio") }
         Text("Configuración", style = MaterialTheme.typography.headlineLarge)
@@ -29,6 +30,19 @@ val FavoriteLabels = listOf("GELIA", "Notas", "Tareas", "Agenda")
                     SkyMode.AUTO -> "Auto"; SkyMode.DAY -> "Día"; SkyMode.NIGHT -> "Noche"
                 }) })
             }
+        }
+        Text("Tamaño del ciclo celeste")
+        val celestial = preferences.blocks["celestial"] ?: BlockPreferences(position = 1)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BlockSize.entries.forEach { size -> FilterChip(celestial.size == size,
+                { onBlock("celestial", celestial.copy(size = size)) }, label = { Text(when (size) {
+                    BlockSize.COMPACT -> "Compacto"; BlockSize.MEDIUM -> "Mediano"; BlockSize.EXPANDED -> "Expandido"
+                }) }) }
+        }
+        if (site.neobash.launcher.BuildConfig.DEBUG) {
+            Text("Laboratorio de movimiento · datos simulados", style = MaterialTheme.typography.labelMedium)
+            site.neobash.launcher.feature.celestial.CelestialCycle(SimulatedCelestialProvider().snapshot(),
+                java.time.LocalTime.of(14, 0), SkyMode.DAY, blockSize = celestial.size)
         }
         Text("Personalizar inicio", style = MaterialTheme.typography.titleMedium)
         HomeComponent.entries.forEach { component ->

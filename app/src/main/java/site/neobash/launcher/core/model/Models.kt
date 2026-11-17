@@ -8,7 +8,7 @@ data class LaunchableApp(val id: String, val label: String, val iconRevision: Lo
 enum class HomeComponent { CLOCK, CELESTIAL, FAVORITES }
 data class Preferences(val favorites: List<String?> = List(4) { null }, val light: Boolean = false,
     val hiddenComponents: Set<HomeComponent> = emptySet(), val favoriteCount: Int = 4,
-    val reduceMotion: Boolean = false)
+    val reduceMotion: Boolean = false, val blocks: Map<String, BlockPreferences> = emptyMap())
 fun moveFavorite(favorites: List<String?>, from: Int, to: Int): List<String?> {
     require(from in favorites.indices && to in favorites.indices)
     return favorites.toMutableList().apply { add(to, removeAt(from)) }
